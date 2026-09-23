@@ -1,4 +1,5 @@
 import logging
+import os
 import ssl
 from typing import Any, Literal
 
@@ -10,7 +11,6 @@ import requests
 import requests.auth
 from boto3.s3.transfer import TransferConfig
 from requests.adapters import HTTPAdapter, Retry
-from os import cpu_count
 
 from copernicusmarine.core_functions.environment_variables import (
     COPERNICUSMARINE_DISABLE_SSL_CONTEXT,
@@ -64,7 +64,7 @@ def get_configured_boto3_session(
     config_boto3 = botocore.config.Config(
         signature_version=botocore.UNSIGNED,
         retries={"max_attempts": 10, "mode": "adaptive"},
-        max_pool_connections=cpu_count() if cpu_count() else 10,
+        max_pool_connections=os.environ.get("BOTO3_MAX_POOL_CONNECTIONS", None),
     )
     s3_session = boto3.Session()
     s3_client = s3_session.client(
