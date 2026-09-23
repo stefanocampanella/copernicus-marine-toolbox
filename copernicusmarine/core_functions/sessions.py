@@ -55,6 +55,22 @@ def get_ssl_context() -> ssl.SSLContext | None:
     return ssl.create_default_context(cafile=certifi.where())
 
 
+def _get_max_pool_connections() -> int | None:
+    if env_default := os.environ.get("BOTO3_MAX_POOL_CONNECTIONS", None):
+        try:
+            value = int(env_default)
+            if value > 0:
+                return value
+            else:
+                logger.warning("Boto3 max pool connections must be greater than 0, using default value")
+                return None
+        except ValueError:
+            logger.warning("Boto3 max pool connections must be an integer, using default value")
+            return None
+    else:
+        return None
+
+
 def get_configured_boto3_session(
     endpoint_url: str,
     operation_type: list[Literal["ListObjectsV2", "HeadObject", "GetObject"]],
@@ -64,7 +80,7 @@ def get_configured_boto3_session(
     config_boto3 = botocore.config.Config(
         signature_version=botocore.UNSIGNED,
         retries={"max_attempts": 10, "mode": "adaptive"},
-        max_pool_connections=os.environ.get("BOTO3_MAX_POOL_CONNECTIONS", None),
+        max_pool_connections=_get_max_pool_connections(),
     )
     s3_session = boto3.Session()
     s3_client = s3_session.client(
